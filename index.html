@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>1440TIME™ Token Allocator</title>
   <style>
     body {
@@ -25,6 +25,14 @@
     .entry-log {
       margin-top: 20px;
     }
+    .section {
+      margin-top: 30px;
+    }
+    .button-section {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
   </style>
 </head>
 <body>
@@ -44,7 +52,7 @@
   <hr>
 
   <h3>Fixed Time Expenses (one-tap log)</h3>
-  <div id="quick-entries"></div>
+  <div class="button-section" id="quick-entries"></div>
 
   <div>
     <input type="number" id="minutes" placeholder="Minutes">
@@ -54,14 +62,25 @@
     </select>
     <input type="text" id="label" placeholder="Label (e.g., Eating / Cooking)">
     <button onclick="addEntry()">Add Entry</button>
+    <button onclick="clearEntries()">Clear Entries</button>
   </div>
 
-  <div class="entry-log" id="entryLog"></div>
+  <div class="entry-log">
+    <div class="section">
+      <h4>PT Entries</h4>
+      <div id="ptLog"></div>
+    </div>
+    <div class="section">
+      <h4>PTP Entries</h4>
+      <div id="ptpLog"></div>
+    </div>
+  </div>
 
   <script>
     const quickItems = [
       'Eating / Cooking', 'Home Maintenance', 'Kids / Family Care', 'TV / Social Media', 'Money / Bills',
-      'Fun Time / Hangout', 'Physical Fitness', 'Sporting Activities', 'Practice Time', 'Online Course', 'Goal 1', 'Goal 2'
+      'Fun Time / Hangout', 'Physical Fitness', 'Sporting Activities', 'Practice Time',
+      'Online Course', 'Goal 1', 'Goal 2'
     ];
 
     const quickDiv = document.getElementById('quick-entries');
@@ -95,25 +114,37 @@
     sleep.addEventListener('input', update);
     work.addEventListener('input', update);
     salary.addEventListener('input', update);
-
     update();
 
-    const entryLog = document.getElementById('entryLog');
+    const ptLog = document.getElementById('ptLog');
+    const ptpLog = document.getElementById('ptpLog');
+
     function addEntry() {
       const min = parseFloat(document.getElementById('minutes').value);
       const type = document.getElementById('type').value;
-      const label = document.getElementById('label').value;
+      const label = document.getElementById('label').value.trim();
+
       if (!min || !label) return;
 
       const multiplier = type === 'PTP' ? 2 : 1;
       const tokenImpact = min * multiplier;
 
       const div = document.createElement('div');
-      div.innerHTML = `<strong>${type}</strong>: ${label} - ${min} min × ${multiplier} = <strong>${tokenImpact} tokens used</strong>`;
-      entryLog.appendChild(div);
+      div.innerHTML = `<strong>${label}</strong>: ${min} min × ${multiplier} = <strong>${tokenImpact} tokens</strong>`;
+
+      if (type === 'PT') {
+        ptLog.appendChild(div);
+      } else {
+        ptpLog.appendChild(div);
+      }
 
       document.getElementById('minutes').value = '';
       document.getElementById('label').value = '';
+    }
+
+    function clearEntries() {
+      ptLog.innerHTML = '';
+      ptpLog.innerHTML = '';
     }
   </script>
 </body>
