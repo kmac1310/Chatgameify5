@@ -2,150 +2,153 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>1440TIME™ Token Allocator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1440TIME™ • On-Time Token Allocator</title>
   <style>
     body {
-      background: #121212;
-      color: #f0f0f0;
+      background-color: #111;
+      color: white;
       font-family: Arial, sans-serif;
-      padding: 20px;
+      padding: 1rem;
     }
     input, select, button {
-      padding: 10px;
-      margin: 5px;
+      margin: 0.25rem;
+      padding: 0.5rem;
       border-radius: 5px;
       border: none;
     }
+    input, select {
+      width: 200px;
+    }
     button {
-      cursor: pointer;
-      background: #00b894;
+      background-color: #00c7a3;
       color: white;
+      cursor: pointer;
     }
-    .entry-log {
-      margin-top: 20px;
+    .entry-group {
+      margin: 1rem 0;
     }
-    .section {
-      margin-top: 30px;
+    .entry {
+      margin-left: 1rem;
     }
-    .button-section {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
+    .quick-buttons button {
+      margin: 0.25rem;
+    }
+    .section-title {
+      font-weight: bold;
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
   <h2>1440TIME™ • On-Time Token Allocator</h2>
   <p>Start fresh every day. Hours for sleep & work — the rest is On-Time (minutes).</p>
-
   <div>
-    <label>Sleep (hours)</label>
-    <input type="number" id="sleep" value="7">
-    <label>Work (hours, door-to-door)</label>
-    <input type="number" id="work" value="10">
-    <label>Annual Salary (optional, $)</label>
-    <input type="number" id="salary" value="200000">
+    <input id="sleepInput" placeholder="Sleep (hours)" value="7">
+    <input id="workInput" placeholder="Work (hours, door-to-door)" value="10">
+    <input id="salaryInput" placeholder="Annual Salary (optional, $)" value="200000">
   </div>
-  <p id="results"></p>
-
+  <p id="totals"></p>
   <hr>
 
-  <h3>Fixed Time Expenses (one-tap log)</h3>
-  <div class="button-section" id="quick-entries"></div>
+  <div class="section-title">Fixed Time Expenses (one-tap log)</div>
+  <div class="quick-buttons">
+    <button onclick="quickAdd(60, 'PT', 'Eating / Cooking')">Eating / Cooking</button>
+    <button onclick="quickAdd(30, 'PT', 'Home Maintenance')">Home Maintenance</button>
+    <button onclick="quickAdd(45, 'PT', 'Kids / Family Care')">Kids / Family Care</button>
+    <button onclick="quickAdd(60, 'PT', 'TV / Social Media')">TV / Social Media</button>
+    <button onclick="quickAdd(30, 'PT', 'Money / Bills')">Money / Bills</button>
+    <button onclick="quickAdd(90, 'PT', 'Fun Time / Hangout')">Fun Time / Hangout</button>
+    <button onclick="quickAdd(60, 'PT', 'Physical Fitness')">Physical Fitness</button>
+    <button onclick="quickAdd(60, 'PT', 'Sporting Activities')">Sporting Activities</button>
+    <button onclick="quickAdd(120, 'PTP', 'Practice Time')">Practice Time</button>
+    <button onclick="quickAdd(90, 'PTP', 'Online Course')">Online Course</button>
+    <button onclick="quickAdd(90, 'PTP', 'Goal 1')">Goal 1</button>
+    <button onclick="quickAdd(90, 'PTP', 'Goal 2')">Goal 2</button>
+  </div>
 
-  <div>
-    <input type="number" id="minutes" placeholder="Minutes">
-    <select id="type">
+  <div class="entry-group">
+    <input id="minutesInput" placeholder="Minutes">
+    <select id="zoneInput">
       <option value="PT">PT — Power Time (x1)</option>
       <option value="PTP">PTP — Purpose Time Plus (x2)</option>
+      <option value="PTPx3">PTP — Power Time Plus (x3)</option>
+      <option value="1440X">1440X — Multiplier Zone (x10)</option>
+      <option value="Leisure">Leisure — Escape Time (-1)</option>
     </select>
-    <input type="text" id="label" placeholder="Label (e.g., Eating / Cooking)">
+    <input id="labelInput" placeholder="Label (e.g., Eating / Cooking)">
     <button onclick="addEntry()">Add Entry</button>
     <button onclick="clearEntries()">Clear Entries</button>
   </div>
 
-  <div class="entry-log">
-    <div class="section">
-      <h4>PT Entries</h4>
-      <div id="ptLog"></div>
-    </div>
-    <div class="section">
-      <h4>PTP Entries</h4>
-      <div id="ptpLog"></div>
-    </div>
-  </div>
+  <div class="section-title">PT Entries</div>
+  <div id="ptList" class="entry-group"></div>
+  <div class="section-title">PTP Entries</div>
+  <div id="ptpList" class="entry-group"></div>
+  <div class="section-title">Other Entries</div>
+  <div id="otherList" class="entry-group"></div>
 
   <script>
-    const quickItems = [
-      'Eating / Cooking', 'Home Maintenance', 'Kids / Family Care', 'TV / Social Media', 'Money / Bills',
-      'Fun Time / Hangout', 'Physical Fitness', 'Sporting Activities', 'Practice Time',
-      'Online Course', 'Goal 1', 'Goal 2'
-    ];
+    const ptList = document.getElementById("ptList");
+    const ptpList = document.getElementById("ptpList");
+    const otherList = document.getElementById("otherList");
+    const totals = document.getElementById("totals");
 
-    const quickDiv = document.getElementById('quick-entries');
-    quickItems.forEach(item => {
-      const btn = document.createElement('button');
-      btn.innerText = item;
-      btn.onclick = () => document.getElementById('label').value = item;
-      quickDiv.appendChild(btn);
-    });
+    const entries = [];
 
-    const sleep = document.getElementById('sleep');
-    const work = document.getElementById('work');
-    const salary = document.getElementById('salary');
-    const results = document.getElementById('results');
+    function updateSummary() {
+      ptList.innerHTML = "";
+      ptpList.innerHTML = "";
+      otherList.innerHTML = "";
 
-    function update() {
-      const sleepMin = parseFloat(sleep.value) * 60;
-      const workMin = parseFloat(work.value) * 60;
-      const onTimeMin = 1440 - sleepMin - workMin;
-      let dollarPerMin = '';
-
-      if (salary.value && salary.value > 0 && workMin > 0) {
-        const yearlyMin = workMin * 5 * 52;
-        const perMin = parseFloat(salary.value) / yearlyMin;
-        dollarPerMin = ` | $ / work min: $${perMin.toFixed(2)}`;
-      }
-
-      results.innerHTML = `<strong>Sleep:</strong> ${sleepMin} min | <strong>Work:</strong> ${workMin} min | <strong>On-Time:</strong> ${onTimeMin} min left${dollarPerMin}`;
+      entries.forEach(entry => {
+        const text = `<div class='entry'><b>${entry.label}</b>: ${entry.minutes} min × ${entry.multiplier} = <b>${entry.tokens} tokens</b></div>`;
+        if (entry.zone === "PT") {
+          ptList.innerHTML += text;
+        } else if (entry.zone === "PTP" || entry.zone === "PTPx3") {
+          ptpList.innerHTML += text;
+        } else {
+          otherList.innerHTML += text;
+        }
+      });
     }
 
-    sleep.addEventListener('input', update);
-    work.addEventListener('input', update);
-    salary.addEventListener('input', update);
-    update();
-
-    const ptLog = document.getElementById('ptLog');
-    const ptpLog = document.getElementById('ptpLog');
-
     function addEntry() {
-      const min = parseFloat(document.getElementById('minutes').value);
-      const type = document.getElementById('type').value;
-      const label = document.getElementById('label').value.trim();
-
-      if (!min || !label) return;
-
-      const multiplier = type === 'PTP' ? 2 : 1;
-      const tokenImpact = min * multiplier;
-
-      const div = document.createElement('div');
-      div.innerHTML = `<strong>${label}</strong>: ${min} min × ${multiplier} = <strong>${tokenImpact} tokens</strong>`;
-
-      if (type === 'PT') {
-        ptLog.appendChild(div);
-      } else {
-        ptpLog.appendChild(div);
-      }
-
-      document.getElementById('minutes').value = '';
-      document.getElementById('label').value = '';
+      const minutes = parseInt(document.getElementById("minutesInput").value);
+      const zone = document.getElementById("zoneInput").value;
+      const label = document.getElementById("labelInput").value || "Unlabeled";
+      const multiplier = zone === "PT" ? 1 : zone === "PTP" ? 2 : zone === "PTPx3" ? 3 : zone === "1440X" ? 10 : -1;
+      const tokens = minutes * multiplier;
+      entries.push({ minutes, zone, label, multiplier, tokens });
+      updateSummary();
     }
 
     function clearEntries() {
-      ptLog.innerHTML = '';
-      ptpLog.innerHTML = '';
+      entries.length = 0;
+      updateSummary();
     }
+
+    function quickAdd(mins, zone, label) {
+      const multiplier = zone === "PT" ? 1 : zone === "PTP" ? 2 : zone === "PTPx3" ? 3 : zone === "1440X" ? 10 : -1;
+      const tokens = mins * multiplier;
+      entries.push({ minutes: mins, zone, label, multiplier, tokens });
+      updateSummary();
+    }
+
+    function updateTimeTotals() {
+      const sleep = parseFloat(document.getElementById("sleepInput").value || 0) * 60;
+      const work = parseFloat(document.getElementById("workInput").value || 0) * 60;
+      const salary = parseFloat(document.getElementById("salaryInput").value || 0);
+      const onTime = 1440 - sleep - work;
+      const rate = salary && work ? (salary / (260 * work)) : 0;
+      totals.innerHTML = `<b>Sleep:</b> ${sleep} min | <b>Work:</b> ${work} min | <b>On-Time:</b> ${onTime} min left | $ / work min: $${rate.toFixed(2)}`;
+    }
+
+    document.getElementById("sleepInput").addEventListener("input", updateTimeTotals);
+    document.getElementById("workInput").addEventListener("input", updateTimeTotals);
+    document.getElementById("salaryInput").addEventListener("input", updateTimeTotals);
+
+    updateTimeTotals();
   </script>
 </body>
 </html>
